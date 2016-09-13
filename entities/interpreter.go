@@ -1,4 +1,4 @@
-package main
+package entities
 
 import "strconv"
 
@@ -20,11 +20,7 @@ func NewInterpreter(t string) *Interpreter {
 	return &Interpreter{text: t, pos: 0, current_token: nil, current_char: string(t[0])}
 }
 
-func (i *Interpreter) ErrorParsing() string {
-	return "Error Parsing"
-}
-
-func (i *Interpreter) Advance() {
+func (i *Interpreter) advance() {
 	i.pos++
 	// Remove the 2 when empty spaces
 	if i.pos > len(i.text)-2 {
@@ -34,18 +30,18 @@ func (i *Interpreter) Advance() {
 	}
 }
 
-func (i *Interpreter) SkipWhitespace() {
+func (i *Interpreter) skipWhitespace() {
 	for i.current_char != "" && i.current_char == " " {
-		i.Advance()
+		i.advance()
 	}
 }
 
-func (i *Interpreter) Integer() int {
+func (i *Interpreter) integer() int {
 	result := ""
 	for i.current_char != "" {
 		if _, err := strconv.Atoi(i.current_char); err == nil {
 			result += i.current_char
-			i.Advance()
+			i.advance()
 		}
 		break
 	}
@@ -54,57 +50,78 @@ func (i *Interpreter) Integer() int {
 	return res
 }
 
-func (i *Interpreter) NextToken() *Token {
+func (i *Interpreter) nextToken() (*Token, error) {
 
 	for i.current_char != "" {
 		if i.current_char == " " {
-			i.SkipWhitespace()
-			//continue
+			i.skipWhitespace()
 		}
 		if _, err := strconv.Atoi(i.current_char); err == nil {
-			return NewToken(INTEGER, i.Integer())
+			return NewToken(INTEGER, i.integer()), nil
 		}
 
 		if i.current_char == "+" {
-			i.Advance()
-			return NewToken(PLUS, "+")
+			i.advance()
+			return NewToken(PLUS, "+"), nil
 		}
 
 		if i.current_char == "-" {
-			i.Advance()
-			return NewToken(MINUS, "-")
+			i.advance()
+			return NewToken(MINUS, "-"), nil
 		}
-		panic(i.ErrorParsing())
+		return nil, newErrorParsing()
 	}
-	return NewToken(EOF, nil)
+	return NewToken(EOF, nil), nil
 
 }
 
-func (i *Interpreter) eat(token_kind string) {
+func (i *Interpreter) eat(token_kind string) error {
+	var err error
 	if i.current_token.kind == token_kind {
-		i.current_token = i.NextToken()
+		i.current_token, err = i.nextToken()
+		if err != nil {
+			return err
+		}
+		return nil
 	} else {
-		panic(i.ErrorParsing())
+		return newErrorParsing()
 	}
 }
 
-func (i *Interpreter) expr() interface{} {
+func (i *Interpreter) Expr() interface{} {
 	var result interface{}
-	i.current_token = i.NextToken()
+	var err error
+	i.current_token, err = i.nextToken()
+
+	if err != nil {
+		panic(err)
+	}
 
 	left := i.current_token
-	i.eat(INTEGER)
+	err = i.eat(INTEGER)
+	if err != nil {
+		panic(err)
+	}
 	l, _ := left.value.(int)
 
 	op := i.current_token
 	if op.kind == PLUS {
-		i.eat(PLUS)
+		err = i.eat(PLUS)
+		if err != nil {
+			panic(err)
+		}
 	} else if op.kind == MINUS {
-		i.eat(MINUS)
+		err = i.eat(MINUS)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	right := i.current_token
-	i.eat(INTEGER)
+	err = i.eat(INTEGER)
+	if err != nil {
+		panic(err)
+	}
 	r, _ := right.value.(int)
 
 	if op.kind == PLUS {
