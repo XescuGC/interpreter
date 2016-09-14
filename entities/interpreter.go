@@ -20,6 +20,8 @@ func NewInterpreter(t string) *Interpreter {
 	return &Interpreter{text: t, pos: 0, current_token: nil, current_char: string(t[0])}
 }
 
+// LEXER code
+
 func (i *Interpreter) advance() {
 	i.pos++
 	// Remove the 2 when empty spaces
@@ -75,6 +77,11 @@ func (i *Interpreter) nextToken() (*Token, error) {
 
 }
 
+// Parser / Interpreter code
+
+// Compare the current_token kind ot the one passed with parametrs,
+// if they are equals just sets the current_token to the next one
+// else it returns an error
 func (i *Interpreter) eat(token_kind string) error {
 	var err error
 	if i.current_token.kind == token_kind {
@@ -88,6 +95,18 @@ func (i *Interpreter) eat(token_kind string) error {
 	}
 }
 
+// Takes the current_token and "converts" it to a integer and returs the integer for it
+// it uses "eat" so it gets the next current_token
+func (i *Interpreter) term() int {
+	token := i.current_token
+	err := i.eat(INTEGER)
+	if err != nil {
+		panic(err)
+	}
+	v, _ := token.value.(int)
+	return v
+}
+
 func (i *Interpreter) Expr() interface{} {
 	var result int
 	var err error
@@ -97,67 +116,22 @@ func (i *Interpreter) Expr() interface{} {
 		panic(err)
 	}
 
-	left := i.current_token
-	err = i.eat(INTEGER)
-	if err != nil {
-		panic(err)
-	}
-	l, _ := left.value.(int)
+	result = i.term()
 
-	op := i.current_token
-	if op.kind == PLUS {
-		err = i.eat(PLUS)
-		if err != nil {
-			panic(err)
-		}
-	} else if op.kind == MINUS {
-		err = i.eat(MINUS)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	right := i.current_token
-	err = i.eat(INTEGER)
-	if err != nil {
-		panic(err)
-	}
-	r, _ := right.value.(int)
-
-	if op.kind == PLUS {
-		result = l + r
-	} else if op.kind == MINUS {
-		result = l - r
-	}
-
-	for {
-		ope := i.current_token
-		if ope.kind == EOF {
-			break
-		}
-		if ope.kind == PLUS {
+	for i.current_token.kind == PLUS || i.current_token.kind == MINUS {
+		token := i.current_token
+		if token.kind == PLUS {
 			err = i.eat(PLUS)
 			if err != nil {
-				break
+				panic(err)
 			}
-		} else if ope.kind == MINUS {
+			result += i.term()
+		} else if token.kind == MINUS {
 			err = i.eat(MINUS)
 			if err != nil {
-				break
+				panic(err)
 			}
-		}
-
-		other := i.current_token
-		err = i.eat(INTEGER)
-		if err != nil {
-			panic(err)
-		}
-		o, _ := other.value.(int)
-
-		if ope.kind == PLUS {
-			result += o
-		} else if ope.kind == MINUS {
-			result -= o
+			result -= i.term()
 		}
 	}
 
