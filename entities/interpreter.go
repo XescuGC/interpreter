@@ -89,10 +89,10 @@ func (i *Interpreter) eat(token_kind string) error {
 }
 
 func (i *Interpreter) Expr() interface{} {
-	var result interface{}
+	var result int
 	var err error
-	i.current_token, err = i.nextToken()
 
+	i.current_token, err = i.nextToken()
 	if err != nil {
 		panic(err)
 	}
@@ -128,6 +128,37 @@ func (i *Interpreter) Expr() interface{} {
 		result = l + r
 	} else if op.kind == MINUS {
 		result = l - r
+	}
+
+	for {
+		ope := i.current_token
+		if ope.kind == EOF {
+			break
+		}
+		if ope.kind == PLUS {
+			err = i.eat(PLUS)
+			if err != nil {
+				break
+			}
+		} else if ope.kind == MINUS {
+			err = i.eat(MINUS)
+			if err != nil {
+				break
+			}
+		}
+
+		other := i.current_token
+		err = i.eat(INTEGER)
+		if err != nil {
+			panic(err)
+		}
+		o, _ := other.value.(int)
+
+		if ope.kind == PLUS {
+			result += o
+		} else if ope.kind == MINUS {
+			result -= o
+		}
 	}
 
 	return result
