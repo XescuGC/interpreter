@@ -125,13 +125,13 @@ func (i *Interpreter) Expr() interface{} {
 			if err != nil {
 				panic(err)
 			}
-			result += i.term()
+			result = result + i.term()
 		} else if token.kind == MINUS {
 			err = i.eat(MINUS)
 			if err != nil {
 				panic(err)
 			}
-			result -= i.term()
+			result = result - i.term()
 		}
 	}
 
